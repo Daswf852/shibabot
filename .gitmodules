@@ -1,0 +1,9 @@
+[submodule "submodules/sleepy-discord"]
+	path = submodules/sleepy-discord
+	url = https://github.com/yourWaifu/sleepy-discord
+[submodule "submodules/spdlog"]
+	path = submodules/spdlog
+	url = https://github.com/gabime/spdlog
+[submodule "submodules/json"]
+	path = submodules/json
+	url = https://github.com/nlohmann/json
