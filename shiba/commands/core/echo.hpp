@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "types/types.hpp"
-#include "utils.hpp"
+#include "shiba/types/command.hpp"
+#include "shiba/utils.hpp"
 
 namespace Shiba {
 

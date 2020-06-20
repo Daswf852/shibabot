@@ -1,4 +1,4 @@
-#include "bot/discordFE.hpp"
+#include "shiba/frontends/discordFE.hpp"
 
 namespace Shiba::Discord {
 

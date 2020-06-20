@@ -1,4 +1,4 @@
-#include "bot/userManager.hpp"
+#include "shiba/core/userManager.hpp"
 
 namespace Shiba {
 

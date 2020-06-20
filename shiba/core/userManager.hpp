@@ -6,8 +6,6 @@
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
 
-#include "types/types.hpp"
-
 namespace Shiba {
 
     class UserManager {

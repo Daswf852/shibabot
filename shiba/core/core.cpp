@@ -1,4 +1,4 @@
-#include "bot/core.hpp"
+#include "shiba/core/core.hpp"
 
 namespace Shiba {
 
@@ -15,6 +15,7 @@ void BotCore::Save() {
     
     /* directory structure:
      * token
+     * botconfig.json
      * enabledchans.json
      * usermgr.json
      * Backups/
@@ -65,8 +66,33 @@ void BotCore::Save() {
     }
 }
 
-void BotCore::Load() {
+void BotCore::Load(std::string configPath) {
     spdlog::info("Loading from json files");
+
+    spdlog::info("Loading bot config");
+    nlohmann::json botConfigJSON;
+    if (Utils::LoadJSON(botConfigJSON, configPath)) {
+        try {
+            prefix = botConfigJSON["prefix"];
+            enabledChannelsSaveFile = botConfigJSON["chanlist"];
+            userManagerSaveFile = botConfigJSON["userlist"];
+            
+            nlohmann::json miscConfigsObject = botConfigJSON["miscConfigs"];
+            for (auto &[k, v] : miscConfigsObject.items()) {
+                spdlog::debug("New misc config: \"{}\": \"{}\"", k, v);
+                miscConfigs.insert_or_assign(k, v);
+            }
+
+        } catch (...) {
+            spdlog::error("Bad bot config! using defaults");
+            prefix = "shiba";
+            enabledChannelsSaveFile = "enabledchans.json";
+            userManagerSaveFile = "usermgr.json";
+            miscConfigs = {};
+        }
+    } else {
+        spdlog::error("Could not load bot configuration, using defaults");
+    }
 
     spdlog::info("Loading enabled channels");
     nlohmann::json chanListJSON;
@@ -96,8 +122,8 @@ void BotCore::AddSelfIdentifier(std::string identifier) {
     selfIdentifiers.push_back(identifier);
 }
 
-void BotCore::AddModule(CommandModule &module) {
-    modules.push_back(module);
+void BotCore::AddModule(std::unique_ptr<CommandModule> module) {
+    modules.push_back(std::move(module));
 }
 
 void BotCore::AddFrontend(Frontend &fe) {
@@ -109,7 +135,6 @@ void BotCore::Start() {
     for (Frontend &fe : frontends) {
         fe.Start();
     }
-    stopRequest = false;
 }
 
 void BotCore::WaitForStopRequest() {
@@ -126,6 +151,10 @@ void BotCore::Stop() {
     for (Frontend &fe : frontends) {
         fe.Stop();
     }
+}
+
+const std::unordered_map<std::string, std::string> &BotCore::GetMiscConfigs() const {
+    return miscConfigs;
 }
 
 void BotCore::OnMessage(Message &message) {
@@ -174,9 +203,9 @@ void BotCore::OnMessage(Message &message) {
 Command &BotCore::GetCommand(std::string identifier) {
     std::optional<std::reference_wrapper<Command>> foundCommand;
     
-    for (CommandModule &module : modules) {
+    for (std::unique_ptr<CommandModule> &module : modules) {
         try {
-            foundCommand = module.GetCommand(identifier);
+            foundCommand = module->GetCommand(identifier);
         } catch (...) { }
     }
 
@@ -242,10 +271,10 @@ bool BotCore::ProcessSemiCommand(bool self, bool bot, std::vector<std::string> &
             oss<<"List of modules: "<<std::endl;
 
             bool first = true;
-            for (const CommandModule &module : modules) {
+            for (const std::unique_ptr<CommandModule> &module : modules) {
                 if (!first) oss<<", ";
                 first = false;
-                oss<<module.GetName();
+                oss<<module->GetName();
             }
 
             oss<<std::endl<<"Try doing \"shiba module <module name>\"";
@@ -255,26 +284,26 @@ bool BotCore::ProcessSemiCommand(bool self, bool bot, std::vector<std::string> &
             if (argv.size() != 3) return false;
             
             std::string moduleName = argv.at(2);
-            std::optional<std::reference_wrapper<const CommandModule>> optCommandModule = std::nullopt;
-            for (const CommandModule &module : modules) {
-                if (module.GetName() == moduleName) optCommandModule = module;
+            std::optional<std::reference_wrapper<const std::unique_ptr<CommandModule>>> optCommandModule = std::nullopt;
+            for (const std::unique_ptr<CommandModule> &module : modules) {
+                if (module->GetName() == moduleName) optCommandModule = module;
             }
 
             if (!optCommandModule.has_value()) {
                 message.ReturnToSender("No such module could be found");
             } else {
-                const CommandModule &module = optCommandModule.value();
+                const std::unique_ptr<CommandModule> &module = optCommandModule.value();
 
                 std::ostringstream oss;
 
-                oss<<"Module \""<<module.GetName()<<"\""<<std::endl
+                oss<<"Module \""<<module->GetName()<<"\""<<std::endl
                    <<"Commands (unordered): ";
 
                 bool first = true;
-                for (auto &[k, v] : module.GetConstCommands()) {
+                for (const std::string &str : module->GetIdentifierList()) {
                     if (!first) oss<<", ";
                     first = false;
-                    oss<<k;
+                    oss<<str;
                 }
 
                 oss<<std::endl<<"Try \"shiba command <command>\"";

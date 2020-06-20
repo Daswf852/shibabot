@@ -5,6 +5,7 @@
 #include <fstream>
 #include <functional>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <sstream>
@@ -15,9 +16,12 @@
 #include "spdlog/spdlog.h"
 #include "nlohmann/json.hpp"
 
-#include "bot/userManager.hpp"
-#include "types/types.hpp"
-#include "utils.hpp"
+#include "shiba/types/command.hpp"
+#include "shiba/types/frontend.hpp"
+#include "shiba/types/message.hpp"
+#include "shiba/types/module.hpp"
+#include "shiba/core/userManager.hpp"
+#include "shiba/utils.hpp"
 
 namespace Shiba {
     class BotCore {
@@ -26,15 +30,17 @@ namespace Shiba {
             ~BotCore();
 
             void Save();
-            void Load();
+            void Load(std::string configPath);
 
             void AddSelfIdentifier(std::string identifier);
-            void AddModule(CommandModule &module);
+            void AddModule(std::unique_ptr<CommandModule> module);
 
             void AddFrontend(Frontend &fe);
             void Start();
             void WaitForStopRequest();
             void Stop();
+
+            const std::unordered_map<std::string, std::string> &GetMiscConfigs() const;
 
             void OnMessage(Message &message);
             Command &GetCommand(std::string identifier);
@@ -45,23 +51,32 @@ namespace Shiba {
             std::mutex coreMutex;
 
         private:
-            const std::string prefix = "shiba";
+            // Bot configuration
 
-            const std::string enabledChannelsSaveFile = "enabledchans.json";
-            const std::string userManagerSaveFile = "usermgr.json";
+            //Key-value pair of misc. configurations
+            //Example: {"discordToken", "0123ABCD..."}
+            std::unordered_map<std::string, std::string> miscConfigs;
 
-            std::vector<std::string> selfIdentifiers;
-            std::vector<std::string> enabledChannels;
+            std::string prefix = "shiba";
 
-            std::vector<std::reference_wrapper<CommandModule>> modules;
+            std::string enabledChannelsSaveFile = "enabledchans.json";
+            std::string userManagerSaveFile = "usermgr.json";
 
-            std::list<std::string> tokenQueue;
+            // Frontend related members
 
             std::vector<std::reference_wrapper<Frontend>> frontends;
 
             std::condition_variable stopRequestCV;
             std::mutex stopRequestMutex;
-            bool stopRequest = false;
+            
+            std::vector<std::string> selfIdentifiers;
+            std::vector<std::string> enabledChannels;
+
+            // Modules, commands, users etc.
+
+            std::vector<std::unique_ptr<CommandModule>> modules;
+
+            std::list<std::string> tokenQueue;
 
             UserManager userManager;
     };

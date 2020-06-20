@@ -10,8 +10,25 @@ A (possibly) multi-platform bot, 'nuff said
 `cmake .. && make -j`  
 `cd ../.. && mkdir build && cd build`  
 `cmake .. && make -j`  
-By default only a discord frontend exists and to run that you don't need to change main.cpp, just put your bot token into a file called `token` and run `./shibabot`  
-  
+
+
+## Running
+- copy the `shibabot` executable to a folder of your liking or leave it in `build/`  
+- make a file called `config.json` in the same directory as `shibabot`  
+- modify and put the content below inside the file:  
+```json
+{
+    "prefix": "shiba",
+    "chanlist": "enabledchans.json",
+    "userlist": "usermgr.json",
+    "miscConfigs": {
+        "discordToken": "<your discord token here>"
+    }
+}
+```
+Note: the prefix works in the following way:  
+`prefix [command] [arguments]`
+
 ## TO-DO
 - automatic saving of necessary files after changes
 - more frontends (such as IRC)

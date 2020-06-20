@@ -6,8 +6,8 @@
 
 #include "sleepy_discord/sleepy_discord.h"
 
-#include "bot/core.hpp"
-#include "types/discordtypes.hpp"
+#include "shiba/core/core.hpp"
+#include "shiba/frontends/discordtypes.hpp"
 
 namespace Shiba::Discord {
 

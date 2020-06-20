@@ -15,15 +15,16 @@ add_subdirectory(submodules/json)
 
 add_executable(shibabot
     main.cpp
-    src/utils.cpp
-    src/bot/core.cpp
-    src/bot/userManager.cpp
-    src/bot/discordFE.cpp
+    shiba/utils.cpp
+    shiba/core/core.cpp
+    shiba/core/userManager.cpp
+    shiba/frontends/discordFE.cpp
+    shiba/frontends/discordTypes.cpp
+    shiba/modules/genericCommandModule.cpp
 )
 
 target_include_directories(shibabot PRIVATE
     .
-    include
     submodules/sleepy-discord/include
     submodules/spdlog/include
     submodules/json/include
