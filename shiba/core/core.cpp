@@ -147,6 +147,8 @@ void BotCore::WaitForStopRequest() {
 }
 
 void BotCore::Stop() {
+    spdlog::info("Notifying all listeners on stopRequestCV");
+    stopRequestCV.notify_all();
     spdlog::info("Calling Stop() on all frontends");
     for (Frontend &fe : frontends) {
         fe.Stop();
@@ -190,8 +192,8 @@ void BotCore::OnMessage(Message &message) {
         if (processed) spdlog::debug("Processed the message in ProcessCommand()");
     }
 
-    if (!processed) processed = ProcessSemiCommand(self, bot, argv, message);
-    if (processed) spdlog::debug("Processed the message in ProcessSemiCommand()");
+    //if (!processed) processed = ProcessSemiCommand(self, bot, argv, message);
+    //if (processed) spdlog::debug("Processed the message in ProcessSemiCommand()");
     if (!processed) processed = ProcessPlainMessage(self, bot, message);
     if (processed) spdlog::debug("Processed the message in ProcessPlainMessage()");
 
@@ -247,162 +249,39 @@ bool BotCore::ProcessCommand(bool self, bool bot, std::vector<std::string> &argv
     return false;
 }
 
-bool BotCore::ProcessSemiCommand(bool self, bool bot, std::vector<std::string> &argv, Message &message) {
-    //simple "shiba xyz" management commands:
-    if (argv.size() < 2) return false;
-
-    std::string command = argv.at(0);
-    std::string manageCommand = argv.at(1);
-    int authorPermLevel = userManager.MakeOrGetUser(message.GetAuthor().GetIdentifier()).permLevel;
-
-    if (command == prefix) {
-        if (manageCommand == "help") {
-            std::ostringstream oss;
-            oss<<"Usage:"<<std::endl
-               <<"Management commands: shiba {enable, save, stop, generateToken, claimToken <token>}"<<std::endl
-               <<"Help commands: shiba {help, modules, module, command}"<<std::endl
-               <<"And for module commands you can just do \"shiba <command> [arguments]\""<<std::endl
-               <<"No output will be given for commands other than this if you enter a bad number of arguments";
-            message.ReturnToSender(oss.str());
-        } else if (manageCommand == "modules") {
-            if (argv.size() != 2) return false;
-
-            std::ostringstream oss;
-            oss<<"List of modules: "<<std::endl;
-
-            bool first = true;
-            for (const std::unique_ptr<CommandModule> &module : modules) {
-                if (!first) oss<<", ";
-                first = false;
-                oss<<module->GetName();
-            }
-
-            oss<<std::endl<<"Try doing \"shiba module <module name>\"";
-
-            message.ReturnToSender(oss.str());
-        } else if (manageCommand == "module") {
-            if (argv.size() != 3) return false;
-            
-            std::string moduleName = argv.at(2);
-            std::optional<std::reference_wrapper<const std::unique_ptr<CommandModule>>> optCommandModule = std::nullopt;
-            for (const std::unique_ptr<CommandModule> &module : modules) {
-                if (module->GetName() == moduleName) optCommandModule = module;
-            }
-
-            if (!optCommandModule.has_value()) {
-                message.ReturnToSender("No such module could be found");
-            } else {
-                const std::unique_ptr<CommandModule> &module = optCommandModule.value();
-
-                std::ostringstream oss;
-
-                oss<<"Module \""<<module->GetName()<<"\""<<std::endl
-                   <<"Commands (unordered): ";
-
-                bool first = true;
-                for (const std::string &str : module->GetIdentifierList()) {
-                    if (!first) oss<<", ";
-                    first = false;
-                    oss<<str;
-                }
-
-                oss<<std::endl<<"Try \"shiba command <command>\"";
-
-                message.ReturnToSender(oss.str());
-            }
-        } else if (manageCommand == "command") {
-            if (argv.size() != 3) return false;
-
-            std::string identifier = argv.at(2);
-
-            std::optional<std::reference_wrapper<Command>> optCommand;
-            try {
-                optCommand = GetCommand(identifier);
-            } catch (...) {
-                spdlog::debug("Command with identifier \"{}\" could not be found", identifier);
-                message.ReturnToSender("No such command could be found");
-                return true;
-            }
-            Command &command = optCommand.value();
-
-            std::ostringstream oss;
-            oss<<"Command: "<<command.GetIdentifier()<<std::endl
-               <<"Usage: "<<command.GetUsage()<<std::endl
-               <<"Description: "<<command.GetShortDescription()<<std::endl
-               <<"Minimum argument count: "<<command.GetMinArgs()<<std::endl
-               <<"Strict argument count? "<<std::boolalpha<<command.StrictMinArgs()<<std::endl
-               <<"Permission level: "<<command.GetPermLevel();
-            
-            message.ReturnToSender(oss.str());
-        } else if (manageCommand == "enable") {
-            if (argv.size() != 2) return false;
-            if (authorPermLevel < 4) {
-                message.ReturnToSender("Your permission level is insufficent");
-                return false;
-            }
-
-            spdlog::info("Adding enabled channel {}", message.GetSourceIdentifier());
-            enabledChannels.push_back(message.GetSourceIdentifier());
-            std::ostringstream oss;
-            oss<<"Enabled in this channel ("<<message.GetSourceIdentifier()<<')';
-            message.ReturnToSender(oss.str());
-        } else if (manageCommand == "save") {
-            if (argv.size() != 2) return false;
-            if (authorPermLevel < 4) {
-                message.ReturnToSender("Your permission level is insufficent");
-                return false;
-            }
-            
-            spdlog::info("Calling Save()");
-            message.ReturnToSender("Saving stuffs");
-            Save();
-        } else if (manageCommand == "stop") {
-            if (argv.size() != 2) return false;
-            if (authorPermLevel < 4) {
-                message.ReturnToSender("Your permission level is insufficent");
-                return false;
-            }
-            
-            message.ReturnToSender("Saving and stopping");
-            Save();
-
-            stopRequestCV.notify_all();
-
-        }  else if (manageCommand == "generateToken") {
-            if (argv.size() != 2) return false;
-
-            std::string token = Utils::GenerateToken();
-            while (tokenQueue.size() >= 20) tokenQueue.pop_back();
-            tokenQueue.push_front(token);
-            message.ReturnToSender("Generated an operator token, check console");
-            spdlog::info("NEW TOKEN: {}", token);
-        } else if (manageCommand == "claimToken") {
-            if (argv.size() != 3) return false;
-            
-            std::string gotToken = argv.at(2);
-            for (const std::string &str : tokenQueue) {
-                if (str == gotToken) {
-                    tokenQueue = std::list<std::string>();
-                    message.ReturnToSender("Token claimed, queue cleared");
-                    userManager.MakeOrGetUser(message.GetAuthor().GetIdentifier()).permLevel = 4;
-                    return true;
-                }
-            }
-            message.ReturnToSender("Invalid token, dont try to get operator privs on this bot...");
-        } else return false;
-        return true;
-    }
-
-    if (argv.size() == 2 && argv.at(0) == "shiba") {
-        std::string manageCommand = argv.at(1);
-        return true;
-    }
-    
-    return false;
-}
-
 bool BotCore::ProcessPlainMessage(bool self, bool bot, Message &message) {
     return false;
 }
+
+void BotCore::PushToken(std::string token) {
+    while (tokenQueue.size() >= 20) tokenQueue.pop_back();
+    tokenQueue.push_front(token);
+}
+
+bool BotCore::IsTokenValid(const std::string &token) {
+    for (const std::string &str : tokenQueue) {
+        if (str == token) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void BotCore::ClearTokens() {
+    tokenQueue = std::list<std::string>();
+}
+
+UserManager &BotCore::GetUserManager() {
+    return userManager;
+}
+
+const std::vector<std::unique_ptr<CommandModule>> &BotCore::GetModules() {
+    return modules;
+}
+
+void BotCore::AddEnabledChannel(std::string channel) {
+    enabledChannels.push_back(channel);
+}
+
 
 }

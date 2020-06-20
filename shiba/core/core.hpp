@@ -8,8 +8,10 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <queue>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -48,7 +50,16 @@ namespace Shiba {
             bool ProcessSemiCommand(bool self, bool bot, std::vector<std::string> &argv, Message &message);
             bool ProcessPlainMessage(bool self, bool bot, Message &message);
 
-            std::mutex coreMutex;
+            void PushToken(std::string token);
+            bool IsTokenValid(const std::string &token);
+            void ClearTokens();
+            
+            UserManager &GetUserManager();
+            const std::vector<std::unique_ptr<CommandModule>> &GetModules();
+
+            void AddEnabledChannel(std::string channel);
+
+            std::mutex coreMutex; //TO BE REMOVED
 
         private:
             // Bot configuration
@@ -79,5 +90,16 @@ namespace Shiba {
             std::list<std::string> tokenQueue;
 
             UserManager userManager;
+
+            // Worker related stuff
+
+            void MessageWorkerThreadFunction();
+            void QueueMessage(std::unique_ptr<Message> message);
+            void NotifyMessageWorker();
+
+            std::queue<std::unique_ptr<Message>> messageQueue;
+
+            std::thread messageWorkerThread;
+
     };
 }
