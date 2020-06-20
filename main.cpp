@@ -2,7 +2,7 @@
 
 #include "bot/core.hpp"
 #include "bot/userManager.hpp"
-#include "bot/discordBot.hpp"
+#include "bot/discordFE.hpp"
 #include "commands/core/echo.hpp"
 #include "commands/core/ping.hpp"
 #include "types/types.hpp"

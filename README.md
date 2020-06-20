@@ -7,7 +7,7 @@ A (possibly) multi-platform bot, 'nuff said
 `cd sleepy-discord && mkdir build && cd build`  
 `cmake .. && make -j`  
 `cd .. && cd spdlog && mkdir build && cd build`  
-`cmake .. && make -j`
+`cmake .. && make -j`  
 `cd ../.. && mkdir build && cd build`  
 `cmake .. && make -j`  
 By default only a discord frontend exists and to run that you don't need to change main.cpp, just put your bot token into a file called `token` and run `./shibabot`  
