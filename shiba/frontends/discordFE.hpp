@@ -25,7 +25,6 @@ namespace Shiba::Discord {
             std::thread runnerThread;
             std::condition_variable runnerStopCV;
             std::mutex runnerStopMutex;
-            void RunnerThreadFunction();
 
             void onMessage(SleepyDiscord::Message message) override;
             void onReady(SleepyDiscord::Ready readyData) override;

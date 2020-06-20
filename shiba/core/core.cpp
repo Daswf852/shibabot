@@ -4,11 +4,17 @@ namespace Shiba {
 
 BotCore::BotCore() : userManager(UserManager()) {
     spdlog::info("New bot core is getting initialised");
+
+    messageWorkerThread = std::thread(&BotCore::MessageWorkerThreadFunction, this);
 }
 
 BotCore::~BotCore() {
 
 }
+
+//////////////////////////////////////////////
+// To be called single-threadedly from main //
+//////////////////////////////////////////////
 
 void BotCore::Save() {
     spdlog::info("Save is called");
@@ -117,11 +123,6 @@ void BotCore::Load(std::string configPath) {
     }
 }
 
-void BotCore::AddSelfIdentifier(std::string identifier) {
-    spdlog::info("Appending new identifier: {}", identifier);
-    selfIdentifiers.push_back(identifier);
-}
-
 void BotCore::AddModule(std::unique_ptr<CommandModule> module) {
     modules.push_back(std::move(module));
 }
@@ -147,17 +148,90 @@ void BotCore::WaitForStopRequest() {
 }
 
 void BotCore::Stop() {
+    spdlog::info("Stopping message worker");
+    stopMessageWorker = true;
+    NotifyMessageWorker();
+    if (messageWorkerThread.joinable()) messageWorkerThread.join();
+
     spdlog::info("Notifying all listeners on stopRequestCV");
+    std::unique_lock<std::mutex> lock(stopRequestMutex);
     stopRequestCV.notify_all();
+    lock.unlock();
     spdlog::info("Calling Stop() on all frontends");
     for (Frontend &fe : frontends) {
         fe.Stop();
     }
 }
 
+//////////////////////////////////////////////
+// To be called from commands and frontends //
+//////////////////////////////////////////////
+
+void BotCore::AddSelfIdentifier(std::string identifier) {
+    std::unique_lock<std::mutex> lock(selfIdentifiersMutex);
+
+    spdlog::info("Appending new identifier: {}", identifier);
+    selfIdentifiers.push_back(identifier);
+}
+
+void BotCore::AddEnabledChannel(std::string channel) {
+    std::unique_lock<std::mutex> lock(enabledChannelsMutex);
+
+    enabledChannels.push_back(channel);
+}
+
+void BotCore::QueueMessage(std::unique_ptr<Message> message) {
+    std::unique_lock<std::mutex> lock(messageQueueMutex);
+
+    messageQueue.push(std::move(message));
+    NotifyMessageWorker();
+}
+
+void BotCore::PushToken(std::string token) {
+    std::unique_lock<std::mutex> lock(tokenQueueMutex);
+
+    while (tokenQueue.size() >= 20) tokenQueue.pop_back();
+    tokenQueue.push_front(token);
+}
+
+bool BotCore::IsTokenValid(const std::string &token) {
+    std::unique_lock<std::mutex> lock(tokenQueueMutex);
+
+    for (const std::string &str : tokenQueue) {
+        if (str == token) return true;
+    }
+    return false;
+}
+
+void BotCore::ClearTokens() {
+    std::unique_lock<std::mutex> lock(tokenQueueMutex);
+
+    tokenQueue = std::list<std::string>();
+}
+
+UserManager &BotCore::GetUserManager() {
+    return userManager;
+}
+
+const std::vector<std::unique_ptr<CommandModule>> &BotCore::GetModules() {
+    return modules;
+}
+
 const std::unordered_map<std::string, std::string> &BotCore::GetMiscConfigs() const {
     return miscConfigs;
 }
+
+const Command &BotCore::GetCommand(std::string identifier) const {
+    try {
+        return GetCommand(identifier);
+    } catch (...) {
+        throw CommandNotFound(identifier);
+    }
+}
+
+//////////////////////////////
+// Private member functions //
+//////////////////////////////
 
 void BotCore::OnMessage(Message &message) {
     std::string authorident = message.GetConstAuthor().GetIdentifier();
@@ -253,35 +327,33 @@ bool BotCore::ProcessPlainMessage(bool self, bool bot, Message &message) {
     return false;
 }
 
-void BotCore::PushToken(std::string token) {
-    while (tokenQueue.size() >= 20) tokenQueue.pop_back();
-    tokenQueue.push_front(token);
-}
+void BotCore::MessageWorkerThreadFunction() {
+    spdlog::info("Message worker is starting");
 
-bool BotCore::IsTokenValid(const std::string &token) {
-    for (const std::string &str : tokenQueue) {
-        if (str == token) {
-            return true;
+    while (!stopMessageWorker) {
+        std::unique_lock<std::mutex> lock(messageNotifyMutex);
+        messageNotifyCV.wait(lock);
+        lock.unlock();
+
+        if (stopMessageWorker) break;
+
+        while (!messageQueue.empty()) {
+            std::unique_lock<std::mutex> mlock(messageQueueMutex);
+            std::unique_ptr<Message> message(std::move(messageQueue.front()));
+            messageQueue.pop();
+            mlock.unlock();
+            OnMessage(*message);
+            //message is destructed here
         }
     }
-    return false;
 }
 
-void BotCore::ClearTokens() {
-    tokenQueue = std::list<std::string>();
+void BotCore::NotifyMessageWorker() {
+    std::unique_lock<std::mutex> lock(messageNotifyMutex);
+    messageNotifyCV.notify_all();
+    lock.unlock();
 }
 
-UserManager &BotCore::GetUserManager() {
-    return userManager;
-}
-
-const std::vector<std::unique_ptr<CommandModule>> &BotCore::GetModules() {
-    return modules;
-}
-
-void BotCore::AddEnabledChannel(std::string channel) {
-    enabledChannels.push_back(channel);
-}
 
 
 }

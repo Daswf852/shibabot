@@ -15,29 +15,19 @@ Frontend::~Frontend() {
 void Frontend::Start() {
     spdlog::debug("Discord frontend is starting");
     if (runnerThread.joinable()) return;
-    runnerThread = std::thread(&Shiba::Discord::Frontend::RunnerThreadFunction, this);
+    runnerThread = std::thread(&Shiba::Discord::Frontend::run, this);
 }
 
 void Frontend::Stop() {
     spdlog::debug("Discord frontend is stopping");
     quit();
-    //runnerStopCV.notify_all();
     if (runnerThread.joinable()) runnerThread.join();
 }
 
-void Frontend::RunnerThreadFunction() {
-    run();
-    //std::unique_lock<std::mutex> lock(runnerStopMutex);
-    //runnerStopCV.wait(lock);
-    //lock.unlock();
-    //quit();
-}
-
 void Frontend::onMessage(SleepyDiscord::Message message) {
-    DiscordMessage dmessage(message, *this);
-    std::unique_lock<std::mutex> lock(core.coreMutex);
-    core.OnMessage(dmessage);
-    lock.unlock();
+    spdlog::info("DiscordFE: new message");
+    std::unique_ptr<Message> dmessage = std::make_unique<DiscordMessage>(message, *this);
+    core.QueueMessage(std::move(dmessage));
 }
 
 

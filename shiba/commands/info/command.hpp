@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "shiba/core/core.hpp"
@@ -26,15 +27,15 @@ namespace Shiba {
             void Trigger(Message &originalMessage, std::vector<std::string> &argv) override {
                 std::string identifier = argv.at(1);
 
-                std::optional<std::reference_wrapper<Command>> optCommand;
+                std::optional<std::reference_wrapper<const Command>> optCommand;
                 try {
-                    optCommand = core.GetCommand(identifier);
+                    optCommand = std::as_const(core).GetCommand(identifier);
                 } catch (...) {
                     spdlog::debug("Command with identifier \"{}\" could not be found", identifier);
                     originalMessage.ReturnToSender("No such command could be found");
                     return;
                 }
-                Command &command = optCommand.value();
+                const Command &command = optCommand.value();
 
                 std::ostringstream oss;
                 oss<<"Command: "<<command.GetIdentifier()<<std::endl
