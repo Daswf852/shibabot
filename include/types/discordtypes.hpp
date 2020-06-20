@@ -25,19 +25,19 @@ namespace Shiba::Discord {
 
             }
 
-            std::string GetUsername() const noexcept override {
+            std::string GetUsername() const override {
                 return user.username;
             }
 
-            std::string GetPingableUsername() const noexcept override {
+            std::string GetPingableUsername() const override {
                 return pingable;
             }
             
-            std::string GetIdentifier() const noexcept override {
+            std::string GetIdentifier() const override {
                 return ident;
             }
 
-            bool GetBot() const noexcept override {
+            bool GetBot() const override {
                 return user.bot;
             }
             
@@ -61,23 +61,23 @@ namespace Shiba::Discord {
                 return userobj;
             }
 
-            const User &GetConstAuthor() const noexcept override {
+            const User &GetConstAuthor() const override {
                 return userobj;
             }
 
-            std::string GetSourceName() const noexcept override {
+            std::string GetSourceName() const override {
                 return "FIXME";
             }
 
-            std::string GetFullSourceName() const noexcept override {
+            std::string GetFullSourceName() const override {
                 return "FIXME";
             }
 
-            std::string GetSourceIdentifier() const noexcept override {
+            std::string GetSourceIdentifier() const override {
                 return std::string("Discord_") + message.channelID.string();
             }
             
-            std::string GetContent() const noexcept override {
+            std::string GetContent() const override {
                 return message.content;
             }
 

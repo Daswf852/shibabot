@@ -10,7 +10,7 @@ UserManager::~UserManager() {
 
 }
 
-nlohmann::json UserManager::GetJSON() const noexcept {
+nlohmann::json UserManager::GetJSON() const {
     spdlog::info("Getting json of the user manager");
     nlohmann::json j;
     for (const std::pair<std::string, User> &user : users) {
@@ -46,7 +46,7 @@ void UserManager::FromJSON(nlohmann::json &j) {
     }
 }
 
-UserManager::User &UserManager::MakeOrGetUser(std::string identifier) noexcept {
+UserManager::User &UserManager::MakeOrGetUser(std::string identifier) {
     if (users.find(identifier) == users.end()) {
         User newUser(0);
         users.insert({identifier, newUser});

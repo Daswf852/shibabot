@@ -28,10 +28,10 @@ namespace Shiba {
             UserManager();
             ~UserManager();
 
-            nlohmann::json GetJSON() const noexcept;
+            nlohmann::json GetJSON() const;
             void FromJSON(nlohmann::json &j);
 
-            UserManager::User &MakeOrGetUser(std::string identifier) noexcept;
+            UserManager::User &MakeOrGetUser(std::string identifier);
             const UserManager::User &GetUser(std::string identifier) const;
             UserManager::User &GetUser(std::string identifier);
             
