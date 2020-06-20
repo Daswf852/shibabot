@@ -10,6 +10,8 @@ namespace Shiba {
 
     class EchoCommand : public Command {
         public:
+            ~EchoCommand() override {}
+            
             std::string GetIdentifier() const noexcept override { return "echo"; }
             int GetMinArgs() const noexcept override { return 1; }
             bool StrictMinArgs() const noexcept override { return false; }

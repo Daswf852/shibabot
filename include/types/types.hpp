@@ -15,6 +15,8 @@ namespace Shiba {
     //An abstract class that contains information about a user
     class User {
         public:
+            virtual ~User() = default;
+
             //Returns a human readable username which tries not to ping the respective user.
             //IRC: daswf852 (pings)
             //Discord: daswf852 (doesn't ping)
@@ -39,6 +41,8 @@ namespace Shiba {
     //All messages are supposed to be passed off as a Message * to the bot core.
     class Message {
         public:
+            virtual ~Message() = default;
+
             //Returns a User object for whoever sent the message
             virtual User &GetAuthor() = 0;
             virtual const User &GetConstAuthor() const = 0;
@@ -74,6 +78,8 @@ namespace Shiba {
 
     class Command {
         public:
+            virtual ~Command() = default;
+
             //Returns a command identifier (aka what you write for command)
             //Examples: ping, echo
             virtual std::string GetIdentifier() const = 0;
@@ -197,6 +203,7 @@ namespace Shiba {
 
     class Frontend {
         public:
+            virtual ~Frontend() = default;
             virtual void Start() = 0;
             virtual void Stop() = 0;
     };

@@ -9,6 +9,8 @@ namespace Shiba {
 
     class PingCommand : public Command {
         public:
+            ~PingCommand() override {}
+
             std::string GetIdentifier() const override { return "ping"; }
             int GetMinArgs() const override { return 0; }
             bool StrictMinArgs() const override { return true; }

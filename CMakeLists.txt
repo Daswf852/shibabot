@@ -18,7 +18,7 @@ add_executable(shibabot
     src/utils.cpp
     src/bot/core.cpp
     src/bot/userManager.cpp
-    src/bot/discordBot.cpp
+    src/bot/discordFE.cpp
 )
 
 target_include_directories(shibabot PRIVATE

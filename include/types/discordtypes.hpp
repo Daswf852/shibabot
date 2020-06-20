@@ -21,7 +21,7 @@ namespace Shiba::Discord {
                 ident = oss.str();
             }
 
-            ~DiscordUser() {
+            ~DiscordUser() override {
 
             }
 
@@ -55,6 +55,10 @@ namespace Shiba::Discord {
             , message(message)
             , userobj(DiscordUser(message.author)) {
 
+            }
+
+            ~DiscordMessage() override {
+                
             }
 
             User &GetAuthor() override {
