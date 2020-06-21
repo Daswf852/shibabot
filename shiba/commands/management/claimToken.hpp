@@ -27,7 +27,7 @@ namespace Shiba {
                 std::string token = argv.at(1);
                 if (core.IsTokenValid(token)) {
                     core.ClearTokens();
-                    core.GetUserManager().MakeOrGetUser(originalMessage.GetAuthor().GetIdentifier()).permLevel = 4;
+                    core.SetUserPerm(originalMessage.GetAuthor().GetIdentifier(), 4);
                     originalMessage.ReturnToSender("Claimed");
                     return;
                 }

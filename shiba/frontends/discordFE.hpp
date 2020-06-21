@@ -5,6 +5,8 @@
 #include <thread>
 
 #include "sleepy_discord/sleepy_discord.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 #include "shiba/core/core.hpp"
 #include "shiba/frontends/discordtypes.hpp"
@@ -13,7 +15,7 @@ namespace Shiba::Discord {
 
     class Frontend : public SleepyDiscord::DiscordClient, public Shiba::Frontend {
         public:
-            Frontend(BotCore &core, std::string token);
+            Frontend(BotCore &core);
             ~Frontend();
 
             void Start() override;
@@ -21,6 +23,8 @@ namespace Shiba::Discord {
 
         private:
             BotCore &core;
+
+            bool failed = false;
 
             std::thread runnerThread;
             std::condition_variable runnerStopCV;

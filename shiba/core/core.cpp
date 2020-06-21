@@ -52,8 +52,8 @@ void BotCore::Save() {
         std::string newBackupPathStr = std::string("Backups/") + std::to_string(biggestID) + std::string("/");
         if (Utils::TryCreateDirectory(newBackupPathStr)) {
             std::error_code ec;
-            std::filesystem::rename(enabledChannelsSaveFile, newBackupPathStr+enabledChannelsSaveFile, ec);
-            std::filesystem::rename(userManagerSaveFile, newBackupPathStr+userManagerSaveFile, ec);
+            std::filesystem::rename(chanlistFile, newBackupPathStr+chanlistFile, ec);
+            std::filesystem::rename(usermgrFile, newBackupPathStr+usermgrFile, ec);
         } else {
             spdlog::error("Could not make the new backup directory with path \"{}\"", newBackupPathStr);
         }
@@ -62,12 +62,12 @@ void BotCore::Save() {
     }
 
     spdlog::info("Saving channels list");
-    if (!Utils::SaveJSON(nlohmann::json(enabledChannels), enabledChannelsSaveFile)) {
+    if (!Utils::SaveJSON(nlohmann::json(enabledChannels), chanlistFile)) {
         spdlog::error("Could not save enabled channels list");
     }
 
     spdlog::info("Saving user manager");
-    if (!Utils::SaveJSON(userManager.GetJSON(), userManagerSaveFile)) {
+    if (!Utils::SaveJSON(userManager.GetJSON(), usermgrFile)) {
         spdlog::error("Could not save user manager data");
     }
 }
@@ -80,8 +80,8 @@ void BotCore::Load(std::string configPath) {
     if (Utils::LoadJSON(botConfigJSON, configPath)) {
         try {
             prefix = botConfigJSON["prefix"];
-            enabledChannelsSaveFile = botConfigJSON["chanlist"];
-            userManagerSaveFile = botConfigJSON["userlist"];
+            chanlistFile = botConfigJSON["chanlist"];
+            usermgrFile = botConfigJSON["userlist"];
             
             nlohmann::json miscConfigsObject = botConfigJSON["miscConfigs"];
             for (auto &[k, v] : miscConfigsObject.items()) {
@@ -92,8 +92,8 @@ void BotCore::Load(std::string configPath) {
         } catch (...) {
             spdlog::error("Bad bot config! using defaults");
             prefix = "shiba";
-            enabledChannelsSaveFile = "enabledchans.json";
-            userManagerSaveFile = "usermgr.json";
+            chanlistFile = "enabledchans.json";
+            usermgrFile = "usermgr.json";
             miscConfigs = {};
         }
     } else {
@@ -102,7 +102,7 @@ void BotCore::Load(std::string configPath) {
 
     spdlog::info("Loading enabled channels");
     nlohmann::json chanListJSON;
-    if (Utils::LoadJSON(chanListJSON, enabledChannelsSaveFile)) {
+    if (Utils::LoadJSON(chanListJSON, chanlistFile)) {
         if (!chanListJSON.is_array()) {
             spdlog::error("Bad JSON file");
             return;
@@ -118,7 +118,7 @@ void BotCore::Load(std::string configPath) {
     }
 
     nlohmann::json userManagerJSON;
-    if (Utils::LoadJSON(userManagerJSON, userManagerSaveFile)) {
+    if (Utils::LoadJSON(userManagerJSON, usermgrFile)) {
         userManager.FromJSON(userManagerJSON);
     }
 }
@@ -209,16 +209,30 @@ void BotCore::ClearTokens() {
     tokenQueue = std::list<std::string>();
 }
 
-UserManager &BotCore::GetUserManager() {
-    return userManager;
+void BotCore::SetUserPerm(std::string identifier, int permLevel) {
+    std::unique_lock<std::mutex> lock(userManagerMutex);
+    userManager.MakeOrGetUser(identifier).permLevel = permLevel;
 }
 
-const std::vector<std::unique_ptr<CommandModule>> &BotCore::GetModules() {
+int BotCore::GetUserPerm(std::string identifier) {
+    std::unique_lock<std::mutex> lock(userManagerMutex);
+    return userManager.MakeOrGetUser(identifier).permLevel;
+}
+
+const std::vector<std::unique_ptr<CommandModule>> &BotCore::GetModules() const {
     return modules;
 }
 
-const std::unordered_map<std::string, std::string> &BotCore::GetMiscConfigs() const {
-    return miscConfigs;
+std::string BotCore::GetConfiguration(std::string key) const{
+    if (key == "prefix") return prefix;
+    else if (key == "chanlistfile") return chanlistFile;
+    else if (key == "usermgrfile") return usermgrFile;
+    else {
+        if (miscConfigs.count(key)) {
+            return miscConfigs.at(key);
+        } else return "";
+    }
+    return "";
 }
 
 const Command &BotCore::GetCommand(std::string identifier) const {
@@ -312,7 +326,7 @@ bool BotCore::ProcessCommand(bool self, bool bot, std::vector<std::string> &argv
     if (self && command.IgnoreSelf()) return false;
     if ((argv.size() - 1) < command.GetMinArgs()) return false;
     if (command.StrictMinArgs() && ((argv.size() - 1) != command.GetMinArgs())) return false;
-    if (command.GetPermLevel() > userManager.MakeOrGetUser(message.GetAuthor().GetIdentifier()).permLevel) {
+    if (command.GetPermLevel() > GetUserPerm(message.GetAuthor().GetIdentifier())) {
         message.ReturnToSender("Your permission level is insufficent");
         return false;
     }

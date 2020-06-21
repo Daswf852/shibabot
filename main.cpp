@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
     
     core.Load("config.json");
 
-    Shiba::Discord::Frontend discordFE(core, core.GetMiscConfigs().at("discordToken"));
+    Shiba::Discord::Frontend discordFE(core);
     core.AddFrontend(discordFE);
     
     core.Start();

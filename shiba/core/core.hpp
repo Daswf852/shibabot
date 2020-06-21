@@ -66,10 +66,13 @@ namespace Shiba {
             //Clears all operator tokens
             void ClearTokens();
 
+            void SetUserPerm(std::string identifier, int permLevel);
+            int GetUserPerm(std::string identifier);
+
+            std::string GetConfiguration(std::string key) const;
+
             //Tidy up below
-            const std::unordered_map<std::string, std::string> &GetMiscConfigs() const;
-            UserManager &GetUserManager();
-            const std::vector<std::unique_ptr<CommandModule>> &GetModules();
+            const std::vector<std::unique_ptr<CommandModule>> &GetModules() const;
             //ugly ugly and ugly
             const Command &GetCommand(std::string identifier) const;
 
@@ -92,8 +95,8 @@ namespace Shiba {
 
             std::string prefix = "shiba";
 
-            std::string enabledChannelsSaveFile = "enabledchans.json";
-            std::string userManagerSaveFile = "usermgr.json";
+            std::string chanlistFile = "enabledchans.json";
+            std::string usermgrFile = "usermgr.json";
 
             // Frontend related members
 
@@ -115,6 +118,7 @@ namespace Shiba {
             std::mutex tokenQueueMutex;
             std::list<std::string> tokenQueue;
 
+            std::mutex userManagerMutex;
             UserManager userManager;
 
             // Worker related stuff
