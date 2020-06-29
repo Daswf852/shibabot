@@ -3,11 +3,9 @@
 namespace Shiba::Discord {
 
 Frontend::Frontend(BotCore &core)
-: core(core) {
-    std::string token = core.GetConfiguration("discordToken");
-    SleepyDiscord::DiscordClient(token, SleepyDiscord::USER_CONTROLED_THREADS);
-
-    if (token == "") {
+: SleepyDiscord::DiscordClient(core.GetConfiguration("discordToken"), SleepyDiscord::USER_CONTROLED_THREADS)
+, core(core) {
+    if (core.GetConfiguration("discordToken") == "") {
         spdlog::error("DiscordFE: bad token");
         failed = true;
     }
@@ -39,7 +37,7 @@ void Frontend::onMessage(SleepyDiscord::Message message) {
 
 
 void Frontend::onReady(SleepyDiscord::Ready readyData) {
-    core.AddSelfIdentifier(std::string("Discord_") + this->getID().string());
+    //core.AddSelfIdentifier(std::string("Discord_") + this->getID().string());
 }
 
 }

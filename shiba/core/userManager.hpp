@@ -1,10 +1,13 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
+
+#include "shiba/perm/perm.hpp"
 
 namespace Shiba {
 
@@ -15,7 +18,7 @@ namespace Shiba {
                     User(int permLevel = 0)
                     : permLevel(permLevel) {}
 
-                    User(const User &user)
+                    User(User &&user)
                     : permLevel(user.permLevel) {}
 
                     ~User() {}

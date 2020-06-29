@@ -123,8 +123,8 @@ void BotCore::Load(std::string configPath) {
     }
 }
 
-void BotCore::AddModule(std::unique_ptr<CommandModule> module) {
-    modules.push_back(std::move(module));
+void BotCore::AddModule(std::unique_ptr<CommandModule> cmodule) {
+    modules.push_back(std::move(cmodule));
 }
 
 void BotCore::AddFrontend(Frontend &fe) {
@@ -236,11 +236,16 @@ std::string BotCore::GetConfiguration(std::string key) const{
 }
 
 const Command &BotCore::GetCommand(std::string identifier) const {
-    try {
-        return GetCommand(identifier);
-    } catch (...) {
-        throw CommandNotFound(identifier);
+    std::optional<std::reference_wrapper<const Command>> foundCommand;
+    
+    for (const std::unique_ptr<CommandModule> &cmodule : modules) {
+        try {
+            foundCommand = cmodule->GetCommand(identifier);
+        } catch (...) { }
     }
+
+    if (!foundCommand.has_value()) throw CommandNotFound(identifier);
+    else return foundCommand.value();
 }
 
 //////////////////////////////
@@ -291,16 +296,7 @@ void BotCore::OnMessage(Message &message) {
 }
 
 Command &BotCore::GetCommand(std::string identifier) {
-    std::optional<std::reference_wrapper<Command>> foundCommand;
-    
-    for (std::unique_ptr<CommandModule> &module : modules) {
-        try {
-            foundCommand = module->GetCommand(identifier);
-        } catch (...) { }
-    }
-
-    if (!foundCommand.has_value()) throw CommandNotFound(identifier);
-    else return foundCommand.value();
+    return const_cast<Command &>(std::as_const(*this).GetCommand(identifier));
 }
 
 bool BotCore::ProcessCommand(bool self, bool bot, std::vector<std::string> &argv, Message &message) {

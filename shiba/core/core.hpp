@@ -39,7 +39,7 @@ namespace Shiba {
             void Load(std::string configPath);
 
             //Adds a command module to the core
-            void AddModule(std::unique_ptr<CommandModule> module);
+            void AddModule(std::unique_ptr<CommandModule> cmodule);
             //Adds a platform frontend to the core
             void AddFrontend(Frontend &fe);
 

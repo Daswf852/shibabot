@@ -13,7 +13,7 @@ UserManager::~UserManager() {
 nlohmann::json UserManager::GetJSON() const {
     spdlog::info("Getting json of the user manager");
     nlohmann::json j;
-    for (const std::pair<std::string, User> &user : users) {
+    for (auto &user : users) {
         j[user.first] = {user.second.permLevel};
     }
     return j;
@@ -42,14 +42,14 @@ void UserManager::FromJSON(nlohmann::json &j) {
         }
 
         UserManager::User user(v[0]);
-        users.insert_or_assign(k, user);
+        users.insert({k, std::move(user)});
     }
 }
 
 UserManager::User &UserManager::MakeOrGetUser(std::string identifier) {
     if (users.find(identifier) == users.end()) {
         User newUser(0);
-        users.insert({identifier, newUser});
+        users.insert({identifier, std::move(newUser)});
     }
     return GetUser(identifier);
 }

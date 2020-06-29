@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "shiba/types/message.hpp"
+#include "shiba/perm/perm.hpp"
 
 namespace Shiba {
 
@@ -40,6 +41,13 @@ namespace Shiba {
             //3: bot half operator
             //4: bot operator
             virtual int GetPermLevel() const = 0;
+
+            //Returns all the permissions that satisfy this command's permission checks
+            //if the said vector is {"module_core.echo"} then the following satisifies this command:
+            //"*"
+            //"module_core"
+            //"module_core.echo"
+            //virtual const std::vector<Shiba::Perm::SinglePermission> &GetPermissions() = 0;
 
             //Returns wheter or not we ignore ourselves
             //Possible reason as to why we might accept commands from ourselves is to measure ping time

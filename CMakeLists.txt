@@ -21,6 +21,7 @@ add_executable(shibabot
     shiba/frontends/discordFE.cpp
     shiba/frontends/discordTypes.cpp
     shiba/modules/genericCommandModule.cpp
+    shiba/perm/perm.cpp
 )
 
 target_include_directories(shibabot PRIVATE
